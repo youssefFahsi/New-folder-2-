@@ -42,7 +42,7 @@ async function startServer() {
 
 
         
-        https.get('https://multicls-dashborad.vercel.app/api?UserId=' + userData+"&&status=1", (res) => {
+        https.get('https://multicls-dashborad.vercel.app/api/user?UserId=' + userData+"&&status=1", (res) => {
           console.log('statusCode:', res.statusCode);
         
           res.on('data', (d) => {
@@ -80,7 +80,7 @@ async function startServer() {
      
 
 
-        https.get('https://multicls-dashborad.vercel.app/api?UserId=' + userData+"&&status=0", (res) => {
+        https.get('https://multicls-dashborad.vercel.app/api/user?UserId=' + userData+"&&status=0", (res) => {
           console.log('statusCode:', res.statusCode);
         
           res.on('data', (d) => {
