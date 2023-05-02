@@ -1,5 +1,4 @@
 const { createServer } = require("http");
-const http = require("http");
 
 const https = require("https");
 
@@ -20,79 +19,76 @@ async function startServer() {
   const collection = db.collection("products");
   const collectionUser = db.collection("users");
 
-
   const httpServer = createServer();
+  
   const io = new Server(httpServer, {
+    
     cors: {
       origin: "*",
     },
   });
 
   io.on("connection", (socket) => {
-    const index = socket.handshake.headers?.cookie?.indexOf(
-      "next-auth.session-token="
-    );
-    const length = "next-auth.session-token=".length;
-    const userData = socket.handshake.headers?.cookie?.slice(index + length);
-    if (userData?.length === 36) {
-      console.log("a user connected");
+  
+console.log(socket.handshake.query.email)
+ const userData = socket.handshake.query.email;
 
-      
-        
+    if (socket.handshake.query.email) {
+      https
+        .get(
+          "https://multicls-dashborad.vercel.app/api/user?email=" +
+            userData +
+            "&&status=1",
+          (res) => {
+            console.log("statusCode:", res.statusCode);
 
-
-        
-        https.get('https://multicls-dashborad.vercel.app/api/user?UserId=' + userData+"&&status=1", (res) => {
-          console.log('statusCode:', res.statusCode);
-        
-          res.on('data', (d) => {
-            process.stdout.write(d);
-          });
-        }).on('error', (e) => {
+            res.on("data", (d) => {
+              process.stdout.write(d);
+            });
+          }
+        )
+        .on("error", (e) => {
           console.error(e);
         });
-
-
     }
 
     const changeStream = collection.watch();
     changeStream.on("change", (change) => {
-      console.log("change:", change);
+      console.log("a Products connected");
+
       socket.emit("change", change);
     });
 
     const changeStreamUser = collectionUser.watch();
 
     changeStreamUser.on("change", (change) => {
-      console.log("changeUser:", change);
+      console.log("a user connected");
       socket.emit("change", change);
     });
 
-
     socket.on("disconnect", () => {
-
       changeStream.close();
-      changeStreamUser.close()
+      changeStreamUser.close();
+      console.log(socket)
+      const userData = socket.handshake.query.email;
 
+      if (userData) {
+        https
+          .get(
+            "https://multicls-dashborad.vercel.app/api/user?email=" +
+              userData +
+              "&&status=0",
+            (res) => {
+              console.log("statusCode:", res.statusCode);
 
-      if (userData?.length === 36) {
-
-     
-
-
-        https.get('https://multicls-dashborad.vercel.app/api/user?UserId=' + userData+"&&status=0", (res) => {
-          console.log('statusCode:', res.statusCode);
-        
-          res.on('data', (d) => {
-            process.stdout.write(d);
+              res.on("data", (d) => {
+                process.stdout.write(d);
+              });
+            }
+          )
+          .on("error", (e) => {
+            console.error(e);
           });
-        }).on('error', (e) => {
-          console.error(e);
-        });
-
-
-
-
       }
     });
   });
