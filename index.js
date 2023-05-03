@@ -20,18 +20,93 @@ async function startServer() {
   const collectionUser = db.collection("users");
 
   const httpServer = createServer();
-  
+
   const io = new Server(httpServer, {
-    
     cors: {
       origin: "*",
     },
   });
 
   io.on("connection", (socket) => {
-  
-console.log(socket.handshake.query.email)
- const userData = socket.handshake.query.email;
+    const userData = socket.handshake.query.email;
+
+
+    socket.on("edit-form-entered", async ({ productId,userId }) => {
+        
+        const data = JSON.stringify({
+            editing: true,
+            productId: productId,
+            editingAction: true,
+            editingUser:userId
+
+          });
+
+        const options = {
+            hostname: 'multicls-dashborad.vercel.app',
+            path: '/api/products',
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': data.length
+            }
+          };
+          
+          
+          
+          const req = await  https.request(options, res => {
+            console.log(`statusCode: ${res.statusCode}`);
+            res.on('data', d => {
+              process.stdout.write(d);
+            });
+          });
+          
+          req.on('error', error => {
+            console.error(error);
+          });
+          
+          req.write(data);
+          req.end();
+      });
+    
+      socket.on("edit-form-left", async ({ productId,userId }) => {
+    
+        const data = JSON.stringify({
+            editing: false,
+            productId: productId,
+            editingAction: false,
+            editingUser:userId
+
+          });
+
+        const options = {
+            hostname: 'multicls-dashborad.vercel.app',
+  path: '/api/products',
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': data.length
+            }
+          };
+          
+          
+          
+          const req = await https.request(options, res => {
+            console.log(`statusCode: ${res.statusCode}`);
+
+            res.on('data', d => {
+              process.stdout.write(d);
+            });
+          });
+          
+          req.on('error', error => {
+            console.error(error);
+          });
+          
+          req.write(data);
+          req.end();
+      });
+
+
 
     if (socket.handshake.query.email) {
       https
@@ -40,8 +115,6 @@ console.log(socket.handshake.query.email)
             userData +
             "&&status=1",
           (res) => {
-            console.log("statusCode:", res.statusCode);
-
             res.on("data", (d) => {
               process.stdout.write(d);
             });
@@ -52,24 +125,21 @@ console.log(socket.handshake.query.email)
         });
     }
 
-    const changeStream = collection.watch();
-    changeStream.on("change", (change) => {
-      console.log("a Products connected");
-
-      socket.emit("change", change);
-    });
-
     const changeStreamUser = collectionUser.watch();
 
     changeStreamUser.on("change", (change) => {
-      console.log("a user connected");
-      socket.emit("change", change);
+      socket.emit("userChange", change);
+    });
+
+    const changeStream = collection.watch();
+    changeStream.on("change", (change) => {
+      socket.emit("productChange", change);
     });
 
     socket.on("disconnect", () => {
       changeStream.close();
       changeStreamUser.close();
-      console.log(socket)
+
       const userData = socket.handshake.query.email;
 
       if (userData) {
@@ -79,8 +149,6 @@ console.log(socket.handshake.query.email)
               userData +
               "&&status=0",
             (res) => {
-              console.log("statusCode:", res.statusCode);
-
               res.on("data", (d) => {
                 process.stdout.write(d);
               });
